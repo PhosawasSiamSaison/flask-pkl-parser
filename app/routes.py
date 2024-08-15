@@ -9,8 +9,10 @@ import numpy as np
 from io import StringIO
 
 # Define the path to the pickle file
-PICKLE_FILE_PATH = 'src/model.pkl'
-CSV_PATH = 'src/learner_test_v4.csv'
+# PICKLE_FILE_PATH = 'src/model.pkl'
+# CSV_PATH = 'src/learner_test_v4.csv'
+PICKLE_FILE_PATH = 'src/scoring_model_v1_tough_napkin_kk02b485.pkl'
+CSV_PATH = 'src/learner_test_v1.csv'
 
 @app.route('/')
 def index():
@@ -36,8 +38,10 @@ def main():
   # Preprocess your actual data in the same way as your training data
   # This includes any scaling, encoding, or feature engineering steps you might have done
   # For example, if your model uses the features "count_order", "count_due", etc., you should extract these features from your actual data
-  X_actual = actual_df[["asset","equity","total_lia","Leverage", "BS_structure", "Changes_EBIT", "asset_growth","Liquidity","changes_equity"]]
-
+  # X_actual = actual_df[["asset","equity","total_lia","Leverage", "BS_structure", "Changes_EBIT", "asset_growth","Liquidity","changes_equity"]]
+  
+  # v1
+  X_actual = actual_df[["asset_2022","equity_2022","total_lia_2022","Leverage", "BS_structure", "Changes_EBITDA", "asset_growth","Liquidity"]]
   # print("::: X_actual")
   # print(X_actual)
 
@@ -74,8 +78,9 @@ def main():
   # print("::: actual_df")
   # print(actual_df)
 
-  actual_df.to_csv("scoring_test_result_v4-iso.csv", index=False)
+  # actual_df.to_csv("scoring_test_result_v4-iso.csv", index=False)
+  actual_df.to_csv("scoring_test_result_v1-iso.csv", index=False)
 
   # df = spark.read.format("csv").option("header","true").load("Files/scoring_test_result_v4-iso.csv")
   # display(df)
-  return jsonify({'result': 'OK'})
+  return jsonify({'result': 'OK', 'rounded_probs': rounded_probs})
