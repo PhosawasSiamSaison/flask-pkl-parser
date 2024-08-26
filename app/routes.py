@@ -46,8 +46,6 @@ def pkl_parser_v1():
   
   # v1
   X_actual = actual_df[["asset_2022","equity_2022","total_lia_2022","Leverage", "BS_structure", "Changes_EBITDA", "asset_growth","Liquidity"]]
-  # print("::: X_actual")
-  # print(X_actual)
 
   # Load your model
   with open(PICKLE_FILE_PATH, 'rb') as file:
@@ -59,28 +57,17 @@ def pkl_parser_v1():
   #   if hasattr(value, '__module__') and value.__module__.startswith('numpy'):
   #       print(f"Found numpy-related attribute: {key}, type: {type(value)}")
 
-  # print("::: model")
-  # print(model)
   # Predict probabilities for class 1 using clf_sigmoid
   y_probs_actual_isotonic = model.predict_proba(X_actual)[:, 1]
 
-  # print("::: y_probs_actual_isotonic")
-  # print(y_probs_actual_isotonic)
-
   # Round the predicted probabilities to two decimal places
   rounded_probs = [round(prob, 2) for prob in y_probs_actual_isotonic]
-
-  # print("::: rounded_probs")
-  # print(rounded_probs)
 
   # Add the predicted probabilities as a result column
   actual_df["predicted_proba"] = rounded_probs
 
   # Save the updated DataFrame or use it as needed
   # For example, if you want to save it to a CSV file:
-
-  # print("::: actual_df")
-  # print(actual_df)
 
   # actual_df.to_csv("scoring_test_result_v4-iso.csv", index=False)
   actual_df.to_csv("scoring_test_result_v1-iso.csv", index=False)
@@ -121,15 +108,11 @@ def pkl_parser_v4():
   # Save the updated DataFrame or use it as needed
   # For example, if you want to save it to a CSV file:
 
-  # print("::: actual_df")
-  # print(actual_df)
-
   actual_df.to_csv("scoring_test_result_v4-iso.csv", index=False)
   return jsonify({'result': 'OK', 'rounded_probs': rounded_probs})
 
-@app.route('/test_calculate', methods=['POST'])
-def test_calculate():
-
+@app.route('/pkl_model_calculate', methods=['POST'])
+def pkl_model_calculate():
   data = request.get_json()
 
   request_data = data.get('data')
@@ -158,19 +141,27 @@ def test_calculate():
 
   current_year = str(datetime.now().year)
   previous_year = str(datetime.now().year - 1)
+  previous_2_year = str(datetime.now().year - 2)
 
   # Find financial data for the current year and the previous year
   current_year_data = next((item for item in financial_data if item['fiscalYear'] == current_year), None)
   previous_year_data = next((item for item in financial_data if item['fiscalYear'] == previous_year), None)
+  previous_2_year_data = next((item for item in financial_data if item['fiscalYear'] == previous_2_year), None)
   
+  if not current_year_data:
+    current_year_data = previous_year_data
+    current_year = previous_year
+    previous_year_data = previous_2_year_data
+    previous_year = previous_2_year
+
   # Check if both years' data are present
   if not current_year_data or not previous_year_data:
-      missing_years = []
-      if not current_year_data:
-          missing_years.append(current_year)
-      if not previous_year_data:
-          missing_years.append(previous_year)
-      abort(400, description=f"Missing financial data for years: {', '.join(missing_years)}")
+    missing_years = []
+    if not current_year_data:
+      missing_years.append(current_year)
+    if not previous_year_data:
+      missing_years.append(previous_year)
+    abort(400, description=f"Missing financial data for years: {', '.join(missing_years)}")
 
   try:
     # data for current_year
@@ -193,14 +184,14 @@ def test_calculate():
     changes_ebit = round(current_income_loss_before_interest_and_income_taxes - previous_income_loss_before_interest_and_income_taxes, 2)
     asset_growth = round((asset - previous_asset)/ previous_asset, 2)
     changes_equity = round(equity - previous_equity, 2)
-    print((asset - previous_asset)/ previous_asset)
   except ValueError as e:
     abort(400, description=str(e))
 
   # insert data to model
   headers = [
-    "asset","equity","total_lia","Leverage", "BS_structure", "Changes_EBIT",
-    "asset_growth","Liquidity","changes_equity"]
+    "asset","equity","total_lia","Leverage", "BS_structure",
+    "Changes_EBIT","asset_growth","Liquidity","changes_equity"
+  ]
   
   # Define the calculated row data
   calculated_data = {
@@ -220,9 +211,6 @@ def test_calculate():
   writer.writeheader()
   writer.writerow(calculated_data)
   csv_string = output.getvalue()
-
-  print(csv_string)
-
 
   mock_csv = StringIO(csv_string)
   actual_df = pd.read_csv(mock_csv)
@@ -255,7 +243,6 @@ def test_calculate():
 
     # Add the predicted probabilities as a result column
     actual_df["predicted_proba"] = rounded_probs
-
   except Exception as e:
     return jsonify({
       "result": "NG",
@@ -263,10 +250,31 @@ def test_calculate():
       "message": str(e)
     }), 400
   
+  # calculate credit_limit
+  try:
+    # data for current_year
+    total_revenue = validate_field(current_year_data, "totalRevenue", current_year)
+    total_current_lia
+    total_current_asset
+    cr_calculate = round((total_current_asset / 3) - total_current_lia)
+    tr_calculate = round(total_revenue / 100)
+    if cr_calculate >= 0:
+      ss_credit_line = cr_calculate
+    else:
+      ss_credit_line = tr_calculate
+    check_creden_line = round((total_current_asset - total_current_lia) / 10)
+    if check_creden_line < 0:
+      creden_credit_line = round(total_revenue / 100)
+    else:
+      creden_credit_line = check_creden_line
+    suggest_initial_limit = round(max(ss_credit_line, creden_credit_line) * 20 / 100)
+  except ValueError as e:
+    abort(400, description=str(e))
 
   return jsonify(
     {
       'result': "OK",
+      'fs_year': current_year,
       'asset': asset,
       'equity': equity,
       'total_lia': total_lia,
@@ -276,7 +284,10 @@ def test_calculate():
       'asset_growth': asset_growth,
       'liquidity': liquidity,
       'changes_equity': changes_equity,
-      'rounded_prob': rounded_probs[0]
+      'rounded_prob': rounded_probs[0],
+      'ss_credit_line': ss_credit_line,
+      'creden_credit_line': creden_credit_line,
+      'suggest_initial_limit': suggest_initial_limit
     }
   )
   
@@ -304,7 +315,6 @@ def handle_zero_division_error(e):
 
 def validate_field(data, field_name, year):
   field_value = data.get(field_name)
-  print(field_value)
   if field_value is None:
     raise ValueError(f"Value not found for '{field_name}' in year {year}")
 
