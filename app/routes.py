@@ -254,8 +254,6 @@ def pkl_model_calculate():
   try:
     # data for current_year
     total_revenue = validate_field(current_year_data, "totalRevenue", current_year)
-    total_current_lia
-    total_current_asset
     cr_calculate = round((total_current_asset / 3) - total_current_lia)
     tr_calculate = round(total_revenue / 100)
     if cr_calculate >= 0:
