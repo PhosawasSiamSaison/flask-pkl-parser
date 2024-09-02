@@ -11,6 +11,7 @@ from datetime import datetime
 import json
 import csv
 import base64
+import os
 
 # Define the path to the pickle file
 # PICKLE_FILE_PATH = 'src/model.pkl'
@@ -22,9 +23,9 @@ CSV_PATH = 'src/learner_test_v1.csv'
 def index():
   return "Hello, World!"
 
-@app.route('/test')
+@app.route('/env')
 def test():
-  return jsonify({'result': True})
+  return jsonify({'result': True, 'env': os.environ.get('FLASK_ENV')})
 
 
 @app.route('/v1/pkl_parser', methods=['POST'])
