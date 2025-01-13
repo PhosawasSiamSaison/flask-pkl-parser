@@ -141,27 +141,40 @@ def pkl_model_calculate():
       abort(400, description="No financial data provided")
 
   current_year = str(datetime.now().year)
-  previous_year = str(datetime.now().year - 1)
-  previous_2_year = str(datetime.now().year - 2)
+  # number of year that will fallback to recheck data
+  # Safely convert 'year' to an integer, with a fallback to 2 if it's null or invalid
+  try:
+    fallback_year = int(data.get('year', 2))  # Use 2 as default if 'year' is missing
+  except (ValueError, TypeError):
+    fallback_year = 2  # Fallback to 2 if 'year' is not a valid integer
 
-  # Find financial data for the current year and the previous year
-  current_year_data = next((item for item in financial_data if item['fiscalYear'] == current_year), None)
-  previous_year_data = next((item for item in financial_data if item['fiscalYear'] == previous_year), None)
-  previous_2_year_data = next((item for item in financial_data if item['fiscalYear'] == previous_2_year), None)
-  
-  if not current_year_data:
-    current_year_data = previous_year_data
-    current_year = previous_year
-    previous_year_data = previous_2_year_data
-    previous_year = previous_2_year
+  # Calculate valid ranges for T and T-1
+  min_current_year = int(current_year) - fallback_year  # Minimum for T
+  min_previous_year = min_current_year - 1  # Minimum for T-1
+
+  # Initialize data holders
+  current_year_data = None
+  previous_year_data = None
+
+  # Loop through possible years for T and T-1
+  for year in range(int(current_year), min_current_year - 1, -1):  # Iterate through valid years for T
+    # Look for data for T
+    current_year_data = next((item for item in financial_data if item['fiscalYear'] == str(year)), None)
+    # Look for T-1 exactly one year before T
+    current_year = year
+    previous_year = year - 1
+    if current_year_data:
+      if previous_year >= min_previous_year:
+        previous_year_data = next((item for item in financial_data if item['fiscalYear'] == str(previous_year)), None)
+      break
 
   # Check if both years' data are present
   if not current_year_data or not previous_year_data:
     missing_years = []
     if not current_year_data:
-      missing_years.append(current_year)
+      missing_years.append(str(current_year))
     if not previous_year_data:
-      missing_years.append(previous_year)
+      missing_years.append(str(previous_year))
     abort(400, description=f"Missing financial data for years: {', '.join(missing_years)}")
 
   try:
