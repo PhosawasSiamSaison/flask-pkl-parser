@@ -159,7 +159,7 @@ def pkl_model_calculate():
   # Loop through possible years for T and T-1
   for year in range(int(current_year), min_current_year - 1, -1):  # Iterate through valid years for T
     # Look for data for T
-    current_year_data = next((item for item in financial_data if item['fiscalYear'] == str(year)), None)
+    current_year_data = next((item for item in financial_data if (item['fiscalYear'] == str(year) or item['fiscalYear'] == year)), None)
     # Look for T-1 exactly one year before T
     current_year = year
     previous_year = year - 1
