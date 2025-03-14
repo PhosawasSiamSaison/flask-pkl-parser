@@ -165,7 +165,7 @@ def pkl_model_calculate():
     previous_year = year - 1
     if current_year_data:
       if previous_year >= min_previous_year:
-        previous_year_data = next((item for item in financial_data if item['fiscalYear'] == str(previous_year)), None)
+        previous_year_data = next((item for item in financial_data if item['fiscalYear'] == str(previous_year) or item['fiscalYear'] == previous_year), None)
       break
 
   # Check if both years' data are present
@@ -329,6 +329,9 @@ def validate_field(data, field_name, year):
   field_value = data.get(field_name)
   if field_value is None:
     raise ValueError(f"Value not found for '{field_name}' in year {year}")
+  
+  if isinstance(field_value, (int, float)):  # If already a number, convert to float
+        return float(field_value)
 
   try:
     return float(field_value.replace(',', '').strip())
