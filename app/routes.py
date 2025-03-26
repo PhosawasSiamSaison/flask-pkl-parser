@@ -156,6 +156,8 @@ def pkl_model_calculate():
   current_year_data = None
   previous_year_data = None
 
+  # required years range for scoring
+  required_year_ranges = [str(year) for year in range(int(current_year), min_current_year - 2, -1)]
   # Loop through possible years for T and T-1
   for year in range(int(current_year), min_current_year - 1, -1):  # Iterate through valid years for T
     # Look for data for T
@@ -168,6 +170,8 @@ def pkl_model_calculate():
         previous_year_data = next((item for item in financial_data if item['fiscalYear'] == str(previous_year) or item['fiscalYear'] == previous_year), None)
       break
 
+  if not current_year_data and not previous_year_data:
+    abort(400, description=f"Missing financial data for years: {', '.join(required_year_ranges)}")
   # Check if both years' data are present
   if not current_year_data or not previous_year_data:
     missing_years = []
